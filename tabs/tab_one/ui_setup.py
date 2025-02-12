@@ -12,7 +12,15 @@ def setup_ui(self):
     ttk.Label(input_frame, text="WLS:").pack(side=tk.LEFT)
     self.wls_var = tk.StringVar()
     ttk.Entry(input_frame, textvariable=self.wls_var, width=10).pack(side=tk.LEFT, padx=5)
-    
+
+    ttk.Label(input_frame, text="DUMMY:").pack(side=tk.LEFT)
+    self.dummy_var = tk.StringVar()
+    ttk.Entry(input_frame, textvariable=self.dummy_var, width=10).pack(side=tk.LEFT, padx=5)
+
+    ttk.Label(input_frame, text="CDUMMY:").pack(side=tk.LEFT)
+    self.cdummy_var = tk.StringVar()
+    ttk.Entry(input_frame, textvariable=self.cdummy_var, width=10).pack(side=tk.LEFT, padx=5)
+
     ttk.Label(input_frame, text="SSL:").pack(side=tk.LEFT)
     self.ssl_var = tk.StringVar()
     ttk.Entry(input_frame, textvariable=self.ssl_var, width=10).pack(side=tk.LEFT, padx=5)
