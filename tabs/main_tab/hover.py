@@ -1,6 +1,9 @@
 import numpy as np
 
 def find_nearest(self, x_click, y_click=None):
+    if not self.plot_lines:  # Return if no plots exist
+        return None, None
+        
     min_dist = float('inf')
     nearest_point = None
     nearest_line = None
@@ -27,9 +30,12 @@ def find_nearest(self, x_click, y_click=None):
                 nearest_point = (x_data[idx], y_data[idx])
                 nearest_line = (wls, ssl)
                 
-    return (nearest_point, nearest_line) if min_dist < 0.1 else (None, None)
+    return nearest_point, nearest_line if min_dist < 0.02 else (None, None)
 
 def on_hover(self, event):
+    if not self.plot_lines:  # Don't show hover if no plots exist
+        return
+        
     if not event.inaxes == self.ax:
         self._clear_hover_elements()
         return
@@ -41,15 +47,20 @@ def on_hover(self, event):
         self._clear_hover_elements()
         return
         
-    self._clear_hover_elements()
-    self.hover_elements['line'] = self.ax.axvline(x=x_hover, color='black', linestyle=':', alpha=0.5)
-    self.hover_elements['text'] = self.ax.text(
-        x_hover, y_hover + 0.1,
-        f'V: {x_hover:.3f}',
-        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'),
-        ha='center', va='bottom'
-    )
-    self.canvas_plot.draw_idle()
+    nearest_point, _ = self.find_nearest(x_hover)
+    if nearest_point:
+        x, y = nearest_point
+        self._clear_hover_elements()
+        self.hover_elements['line'] = self.ax.axvline(x=x, color='black', linestyle=':', alpha=0.5)
+        self.hover_elements['text'] = self.ax.text(
+            x, y + 0.1,
+            f'V: {x:.3f}',
+            bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'),
+            ha='center', va='bottom'
+        )
+        self.canvas_plot.draw_idle()
+    else:
+        self._clear_hover_elements()
 
 def _clear_hover_elements(self):
     if hasattr(self, 'hover_elements'):

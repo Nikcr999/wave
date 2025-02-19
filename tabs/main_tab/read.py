@@ -5,19 +5,18 @@ def load_file(self):
     self.file_path = filedialog.askopenfilename(filetypes=[("Text file", "*.txt")])
     if self.file_path:
         try:
-            self.parse_file()
             self.update_checkboxes()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load file: {str(e)}")
 
-def parse_file(self):
+def read_data_for_key(self, target_key):
     with open(self.file_path, 'r') as file:
         lines = file.readlines()
     
-    self.data.clear()
     current_data = []
     current_key = None
     inside_data_block = False
+    found_data = []
     
     for line in lines:
         line = line.strip()
@@ -27,8 +26,8 @@ def parse_file(self):
             continue
             
         if line.startswith('END_SANPO'):
-            if current_key and current_data:
-                self.data[current_key] = current_data
+            if current_key == target_key and current_data:
+                found_data = current_data
             inside_data_block = False
             current_data = []
             current_key = None
@@ -38,9 +37,9 @@ def parse_file(self):
             continue
             
         if any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
-            if current_key and current_data:
-                self.data[current_key] = current_data.copy()
-                current_data = []
+            if current_key == target_key and current_data:
+                found_data = current_data.copy()
+            current_data = []
             current_key = _parse_key(self, line)
         else:
             try:
@@ -48,6 +47,20 @@ def parse_file(self):
                 current_data.append(value)
             except ValueError:
                 continue
+                
+    return found_data
+
+def check_key_exists(self, key):
+    with open(self.file_path, 'r') as file:
+        lines = file.readlines()
+    
+    for line in lines:
+        line = line.strip()
+        if any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
+            current_key = _parse_key(self, line)
+            if current_key == key:
+                return True
+    return False
 
 def update_checkboxes(self):
     for widget in self.scrollable_frame.winfo_children():
@@ -55,32 +68,31 @@ def update_checkboxes(self):
     self.checkboxes.clear()
     
     all_combinations = []
+    
     for wls in range(175, -1, -1):
         for ssl in range(8):
-            all_combinations.append((wls, ssl))
+            all_combinations.append(((wls, ssl), f"WLS:{wls}, SSL:{ssl}"))
             
-    for dummy in range(2, -1, -1):
+    for dummy in range(2, 0 , -1):
         for ssl in range(8):
-            all_combinations.append((dummy, ssl))
-        
-    for cdummy in range(2, -1, -1):
-        for ssl in range(8):
-            all_combinations.append((cdummy, ssl))
+            key = (f"DUMMY:{dummy}", ssl)
+            all_combinations.append((key, f"DUMMY:{dummy}, SSL:{ssl}"))
+            
+    cdummy_ssl_ranges = {3: range(8), 0: range(7)}
+    for cdummy, ssl_range in cdummy_ssl_ranges.items():
+        for ssl in ssl_range:
+            key = (f"CDUMMY:{cdummy}", ssl)
+            all_combinations.append((key, f"CDUMMY:{cdummy}, SSL:{ssl}"))
 
-    for key in all_combinations:
+    for key, label in all_combinations:
         var = tk.BooleanVar()
         self.checkboxes[key] = var
-        if isinstance(key[0], int):
-            label = f"WLS:{key[0]}, SSL:{key[1]}"
-        else:
-            label = f"{key[0]}, SSL:{key[1]}"
-            
-        has_data = key in self.data and self.data[key]
+        has_data = self.check_key_exists(key)
         checkbox = ttk.Checkbutton(
             self.scrollable_frame, 
             text=label, 
             variable=var,
-            command=self.plot_selected,
+            command=self.plot_data,
             state='normal' if has_data else 'disabled'
         )
         checkbox.pack(anchor=tk.W)

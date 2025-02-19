@@ -1,16 +1,14 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 class DeveloperOptionTab(ttk.Frame):
     def __init__(self, notebook, main_app):
         super().__init__(notebook)
         self.main_app = main_app
         
-        # Create a frame with padding
         main_frame = ttk.Frame(self, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Add title
         title_label = ttk.Label(
             main_frame, 
             text="Developer Options",
@@ -18,7 +16,6 @@ class DeveloperOptionTab(ttk.Frame):
         )
         title_label.pack(pady=10)
         
-        # Add development settings and tools here
         self.debug_var = tk.BooleanVar(value=False)
         debug_check = ttk.Checkbutton(
             main_frame,
@@ -43,6 +40,21 @@ class DeveloperOptionTab(ttk.Frame):
             command=self.apply_custom_resolution
         ).pack(side=tk.LEFT, padx=5)
 
+        # WLS Range adjustment
+        wls_frame = ttk.LabelFrame(main_frame, text="WLS Range Settings", padding="5")
+        wls_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Label(wls_frame, text="Max WLS Value:").pack(side=tk.LEFT, padx=5)
+        self.max_wls = ttk.Entry(wls_frame, width=10)
+        self.max_wls.pack(side=tk.LEFT, padx=5)
+        self.max_wls.insert(0, "175")
+        
+        ttk.Button(
+            wls_frame,
+            text="Apply",
+            command=self.apply_wls_range
+        ).pack(side=tk.LEFT, padx=5)
+
     def toggle_debug(self):
         if self.debug_var.get():
             print("Debug mode enabled")
@@ -55,4 +67,18 @@ class DeveloperOptionTab(ttk.Frame):
             self.main_app.resolution_var.set(str(int(resolution)))
             print(f"Resolution updated to {resolution}mV")
         except ValueError:
-            print("Invalid resolution value")
+            messagebox.showerror("Error", "Invalid resolution value")
+
+    def apply_wls_range(self):
+        try:
+            max_wls = int(self.max_wls.get())
+            if max_wls <= 0:
+                raise ValueError("WLS value must be positive")
+                
+            # Update WLS range in read.py
+            self.main_app.wls_max_value = max_wls
+            # Update checkboxes with new range
+            self.main_app.update_checkboxes()
+            messagebox.showinfo("Success", f"WLS range updated to 0-{max_wls}")
+        except ValueError as e:
+            messagebox.showerror("Error", f"Invalid WLS value: {str(e)}")

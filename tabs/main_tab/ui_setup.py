@@ -29,8 +29,7 @@ def setup_ui(self):
     button_frame.pack(fill=tk.X)
 
     ttk.Button(button_frame, text="Browse", command=self.load_file).pack(side=tk.LEFT, padx=5)
-    ttk.Button(button_frame, text="Plot Manual", command=self.plot_manual).pack(side=tk.LEFT, padx=5)
-    ttk.Button(button_frame, text="Plot Selected", command=self.plot_selected).pack(side=tk.LEFT, padx=5)
+    ttk.Button(button_frame, text="Plot", command=self.plot_data).pack(side=tk.LEFT, padx=5)
     ttk.Button(button_frame, text="Undo Mark", command=self.undo_mark).pack(side=tk.LEFT, padx=5)
     ttk.Button(button_frame, text="Clear Marks", command=self.clear_marks).pack(side=tk.LEFT, padx=5)
     ttk.Button(button_frame, text="Clear Plots", command=self.clear_plots).pack(side=tk.LEFT, padx=5)

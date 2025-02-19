@@ -1,6 +1,9 @@
 import numpy as np
 
 def onclick(self, event):
+    if not self.plot_lines:  # Don't allow marking if no plots exist
+        return
+        
     if event.inaxes == self.ax and event.button == 1:
         x_click = event.xdata
         y_click = event.ydata
@@ -8,9 +11,13 @@ def onclick(self, event):
         
         if nearest_point:
             x, y = nearest_point
+            # Add marker at the nearest point
             marker = self.ax.plot(x, y, 'ro', markersize=8, alpha=0.8)[0]
+            
+            # Add vertical dotted line
             vline = self.ax.axvline(x=x, color='black', linestyle=':', alpha=0.5)
             
+            # Add text at bottom of vertical line
             text = self.ax.text(
                 x, self.ax.get_ylim()[0],
                 f'V: {x:.3f}',
