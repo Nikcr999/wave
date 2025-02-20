@@ -51,16 +51,7 @@ def read_data_for_key(self, target_key):
     return found_data
 
 def check_key_exists(self, key):
-    with open(self.file_path, 'r') as file:
-        lines = file.readlines()
-    
-    for line in lines:
-        line = line.strip()
-        if any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
-            current_key = _parse_key(self, line)
-            if current_key == key:
-                return True
-    return False
+    return True
 
 def update_checkboxes(self):
     for widget in self.scrollable_frame.winfo_children():
@@ -71,29 +62,28 @@ def update_checkboxes(self):
     
     for wls in range(175, -1, -1):
         for ssl in range(8):
-            all_combinations.append(((wls, ssl), f"WLS:{wls}, SSL:{ssl}"))
+            key = f"w_{wls}_{ssl}"
+            all_combinations.append((key, f"WLS:{wls}, SSL:{ssl}"))
             
-    for dummy in range(2, 0 , -1):
+    for dummy in range(2, 0, -1):
         for ssl in range(8):
-            key = (f"DUMMY:{dummy}", ssl)
+            key = f"d_{dummy}_{ssl}"
             all_combinations.append((key, f"DUMMY:{dummy}, SSL:{ssl}"))
             
     cdummy_ssl_ranges = {3: range(8), 0: range(7)}
     for cdummy, ssl_range in cdummy_ssl_ranges.items():
         for ssl in ssl_range:
-            key = (f"CDUMMY:{cdummy}", ssl)
+            key = f"c_{cdummy}_{ssl}"
             all_combinations.append((key, f"CDUMMY:{cdummy}, SSL:{ssl}"))
 
     for key, label in all_combinations:
         var = tk.BooleanVar()
         self.checkboxes[key] = var
-        has_data = self.check_key_exists(key)
         checkbox = ttk.Checkbutton(
             self.scrollable_frame, 
             text=label, 
             variable=var,
-            command=self.plot_data,
-            state='normal' if has_data else 'disabled'
+            command=self.plot_data
         )
         checkbox.pack(anchor=tk.W)
 
@@ -112,10 +102,10 @@ def _parse_key(self, line):
             ssl = int(part.split("SSL:")[1].strip())
     
     if wls is not None and ssl is not None:
-        return (wls, ssl)
+        return f"w_{wls}_{ssl}"
     elif dummy is not None and ssl is not None:
-        return (f"DUMMY:{dummy}", ssl)
+        return f"d_{dummy}_{ssl}"
     elif cdummy is not None and ssl is not None:
-        return (f"CDUMMY:{cdummy}", ssl)
+        return f"c_{cdummy}_{ssl}"
     
     return None

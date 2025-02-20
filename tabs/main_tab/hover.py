@@ -1,14 +1,14 @@
 import numpy as np
 
 def find_nearest(self, x_click, y_click=None):
-    if not self.plot_lines:  # Return if no plots exist
+    if not self.plot_lines:
         return None, None
         
     min_dist = float('inf')
     nearest_point = None
     nearest_line = None
     
-    for (wls, ssl), line in self.plot_lines.items():
+    for key, line in self.plot_lines.items():
         x_data = line.get_xdata()
         y_data = line.get_ydata()
         
@@ -24,16 +24,16 @@ def find_nearest(self, x_click, y_click=None):
             if dist1 < min_dist:
                 min_dist = dist1
                 nearest_point = (x_data[idx-1], y_data[idx-1])
-                nearest_line = (wls, ssl)
+                nearest_line = key
             if dist2 < min_dist:
                 min_dist = dist2
                 nearest_point = (x_data[idx], y_data[idx])
-                nearest_line = (wls, ssl)
+                nearest_line = key
                 
     return nearest_point, nearest_line if min_dist < 0.02 else (None, None)
 
 def on_hover(self, event):
-    if not self.plot_lines:  # Don't show hover if no plots exist
+    if not self.plot_lines:
         return
         
     if not event.inaxes == self.ax:
