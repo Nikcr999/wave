@@ -5,42 +5,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from tkinter import messagebox
 
-# def setup_plot(self):
-#     self.paned_window = ttk.PanedWindow(self.content_frame, orient=tk.VERTICAL)
-#     self.paned_window.pack(fill=tk.BOTH, expand=True)
-    
-#     self.upper_frame = ttk.Frame(self.paned_window)
-#     self.lower_frame = ttk.Frame(self.paned_window)
-    
-#     self.paned_window.add(self.upper_frame, weight=2)
-#     self.paned_window.add(self.lower_frame, weight=8)
-    
-#     self.fig, self.ax = plt.subplots(figsize=(15, 1.8))
-#     self.canvas_plot = FigureCanvasTkAgg(self.fig, master=self.upper_frame)
-#     self.canvas_plot.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-    
-#     self.fig.canvas.mpl_connect("button_press_event", self.onclick)
-#     self.fig.canvas.mpl_connect("motion_notify_event", self.on_hover)
-#     self.fig.subplots_adjust(left=0.08, right=0.95, bottom=0.25, top=0.9)
-    
-#     self.lower_box = ttk.Frame(self.lower_frame, style='Bordered.TFrame')
-#     self.lower_box.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    
-#     style = ttk.Style()
-#     style.configure('Bordered.TFrame', borderwidth=2, relief='solid')
-
-# def configure_plot(self):
-#     self.ax.set_title("Cell Distribution")
-#     self.ax.set_xlabel("Voltage (mV)")
-#     self.ax.set_ylabel("Value")
-#     self.ax.grid(True)
-#     self.ax.set_xlim(-2.4, 0.8)
-#     self.ax.set_xticks(np.arange(-2.4, 0.9, 0.4))
-#     self.ax.set_yscale('log')
-#     self.ax.set_ylim(1, 10000)
-#     self.ax.legend(bbox_to_anchor=(0.5, -0.35), loc='center', ncol=len(self.plot_lines), 
-#                   borderaxespad=0.)
-
 def setup_plot(self):
     self.paned_window = ttk.PanedWindow(self.content_frame, orient=tk.VERTICAL)
     self.paned_window.pack(fill=tk.BOTH, expand=True)
@@ -48,36 +12,148 @@ def setup_plot(self):
     self.lower_frame = ttk.Frame(self.paned_window)
     self.paned_window.add(self.upper_frame, weight=2)
     self.paned_window.add(self.lower_frame, weight=8)
-    self.fig, self.ax = plt.subplots(figsize=(12, 1.8))
+    self.fig, self.ax = plt.subplots(figsize=(16, 1.8))
     self.canvas_plot = FigureCanvasTkAgg(self.fig, master=self.upper_frame)
     self.canvas_plot.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     self.fig.canvas.mpl_connect("button_press_event", self.onclick)
     self.fig.canvas.mpl_connect("motion_notify_event", self.on_hover)
-    self.fig.subplots_adjust(left=0.12, right=0.98, bottom=0.4, top=0.85)
-    
+    self.fig.subplots_adjust(left=0.08, right=0.98, bottom=0.4, top=0.85)
+    configure_initial_plot(self)
     self.lower_box = ttk.Frame(self.lower_frame, style='Bordered.TFrame')
     self.lower_box.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    setup_table(self)
+
+def setup_table(self):
+    table_container = ttk.Frame(self.lower_box)
+    table_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+    title_label = ttk.Label(
+        table_container, 
+        text="Table Title", 
+        font=('Helvetica', 12, 'bold')
+    )
+    title_label.pack(pady=(0,5))
+    outer_frame = ttk.Frame(table_container, style='OuterBorder.TFrame')
+    outer_frame.pack(fill=tk.BOTH)
     
+    table_frame = ttk.Frame(outer_frame, style='Table.TFrame')
+    table_frame.pack(fill=tk.BOTH, padx=1, pady=1)  
+    setup_table_styles()
+    for i in range(3):
+        if i > 0:  
+            separator = ttk.Separator(table_frame, orient='horizontal')
+            separator.pack(fill=tk.X)
+        row_frame = ttk.Frame(table_frame, style='Row.TFrame', height=25)
+        row_frame.pack(fill=tk.X)
+        row_frame.pack_propagate(False)  
+        
+        col1 = ttk.Frame(row_frame, style='Column.TFrame')
+        separator = ttk.Separator(row_frame, orient='vertical')
+        col2 = ttk.Frame(row_frame, style='ColumnRight.TFrame')
+        
+        col1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        separator.pack(side=tk.LEFT, fill=tk.Y)
+        col2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        if i == 0:
+            col1_label = ttk.Label(
+                col1,
+                text="Cell 1,1",
+                style='Header1.TLabel',
+                anchor='center'
+            )
+            col2_label = ttk.Label(
+                col2,
+                text="Cell 1,2",
+                style='Header2.TLabel',
+                anchor='center'
+            )
+        else:
+            col1_label = ttk.Label(
+                col1,
+                text=f"Cell {i+1},1",
+                style='Cell.TLabel',
+                anchor='center'
+            )
+            col2_label = ttk.Label(
+                col2,
+                text=f"Cell {i+1},2",
+                style='CellWhite.TLabel',
+                anchor='center'
+            )
+        col1_label.pack(fill=tk.BOTH, expand=True)
+        col2_label.pack(fill=tk.BOTH, expand=True)
+
+def setup_table_styles():
     style = ttk.Style()
-    style.configure('Bordered.TFrame', borderwidth=2, relief='solid')
+    style.configure('OuterBorder.TFrame', 
+                   relief='solid', 
+                   borderwidth=2)
+    style.configure('Table.TFrame', 
+                   relief='solid', 
+                   borderwidth=1)
+    style.configure('Row.TFrame', 
+                   relief='flat', 
+                   borderwidth=0)
+    style.configure('Column.TFrame', 
+                   relief='solid', 
+                   borderwidth=0)
+    style.configure('ColumnRight.TFrame', 
+                   relief='solid', 
+                   borderwidth=2)
+    style.configure('TSeparator', 
+                   background='black')
+    style.configure('Header1.TLabel', 
+                   background='#1e40af',
+                   foreground='white',
+                   padding=2,
+                   font=('Helvetica', 9))
+    style.configure('Header2.TLabel',
+                   background='white',
+                   foreground='red',
+                   padding=2,
+                   font=('Helvetica', 9))
+    style.configure('Cell.TLabel',
+                   background='#dbeafe',
+                   foreground='black',
+                   padding=2,
+                   font=('Helvetica', 9))
+    style.configure('CellWhite.TLabel',
+                   background='white',
+                   foreground='black',
+                   padding=2,
+                   font=('Helvetica', 9))
+
+def configure_initial_plot(self):
+    self.ax.grid(True, which='major', linestyle='-', alpha=0.8)
+    self.ax.grid(True, which='minor', linestyle=':', alpha=0.5)
+    self.ax.minorticks_on()
+    self.ax.set_xlim(-2.4, 4.6)
+    x_ticks_major = np.arange(-2.4, 4.8, 1.0)
+    x_ticks_minor = np.arange(-2.4, 4.8, 0.5)
+    self.ax.set_xticks(x_ticks_major)
+    self.ax.set_xticks(x_ticks_minor, minor=True)
+    x_labels = [f'+{x:.2f}' if x > 0 else f'{x:.2f}' for x in x_ticks_major]
+    self.ax.set_xticklabels(x_labels, fontsize=8)
+    self.ax.set_yscale('log')
+    self.ax.set_ylim(1, 1e7)
+    y_ticks = [10**i for i in range(8)]
+    self.ax.set_yticks(y_ticks)
+    self.ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.1E}'))
+    self.ax.yaxis.set_minor_formatter(plt.NullFormatter())
+    self.ax.set_xlabel('')
+    self.ax.set_ylabel('')
+    self.ax.tick_params(axis='y', labelsize=6)
+    self.ax.grid(True, which='minor', linestyle='-', alpha=0.4)
+    self.canvas_plot.draw()
 
 def configure_plot(self):
-    self.ax.set_title("Cell Distribution")
-    self.ax.set_xlabel("Voltage (mV)")
-    self.ax.set_ylabel("Value")
-    self.ax.grid(True)
-    self.ax.set_xlim(-2.4, 0.8)
-    self.ax.set_xticks(np.arange(-2.4, 0.9, 0.4))
-    self.ax.set_yscale('log')
-    self.ax.set_ylim(1, 10000)
-    self.ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:.1E}'))
-    
+    configure_initial_plot(self)
     self.ax.legend(bbox_to_anchor=(0.5, -0.5), 
                   loc='center', 
                   ncol=len(self.plot_lines),
                   borderaxespad=0,
                   frameon=False)
-    
+
 def plot_data(self):
     try:
         resolution = int(self.resolution_var.get()) / 1000

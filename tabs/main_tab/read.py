@@ -58,6 +58,11 @@ def update_checkboxes(self):
         widget.destroy()
     self.checkboxes.clear()
     
+    style = ttk.Style()
+    style.configure('Checkbox.TCheckbutton', 
+                   background='white',
+                   font=('Helvetica', 9))
+    
     all_combinations = []
     
     for wls in range(175, -1, -1):
@@ -76,16 +81,20 @@ def update_checkboxes(self):
             key = f"c_{cdummy}_{ssl}"
             all_combinations.append((key, f"CDUMMY:{cdummy}, SSL:{ssl}"))
 
+    container_frame = ttk.Frame(self.scrollable_frame, style='TFrame')
+    container_frame.pack(fill=tk.BOTH, expand=True)
+
     for key, label in all_combinations:
         var = tk.BooleanVar()
         self.checkboxes[key] = var
         checkbox = ttk.Checkbutton(
-            self.scrollable_frame, 
-            text=label, 
+            container_frame,
+            text=label,
             variable=var,
-            command=self.plot_data
+            command=self.plot_data,
+            style='Checkbox.TCheckbutton'
         )
-        checkbox.pack(anchor=tk.W)
+        checkbox.pack(anchor=tk.W, padx=5)
 
 def _parse_key(self, line):
     parts = [part.strip() for part in line.split(',')]
