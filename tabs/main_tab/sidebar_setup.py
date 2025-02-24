@@ -24,7 +24,6 @@ def setup_sidebar(self):
         width=150
     )
     
-    # Vertical scrollbar on the right
     y_scrollbar = ttk.Scrollbar(
         scroll_frame,
         orient=tk.VERTICAL,
@@ -32,11 +31,9 @@ def setup_sidebar(self):
     )
     y_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
-    # Bottom frame for horizontal scrollbar and toggle button
     bottom_frame = ttk.Frame(content_frame, style='TFrame')
     bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
     
-    # Frame to center the toggle button
     center_frame = ttk.Frame(bottom_frame, style='TFrame')
     center_frame.pack(fill=tk.X)
     
@@ -80,3 +77,5 @@ def setup_sidebar(self):
         yscrollcommand=y_scrollbar.set,
         xscrollcommand=x_scrollbar.set
     )
+    
+    self.block_expanded = False

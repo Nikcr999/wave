@@ -4,6 +4,9 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from tkinter import messagebox
+import matplotlib.cm as cm
+import os
+from tkinter import filedialog
 
 def setup_plot(self):
     self.paned_window = ttk.PanedWindow(self.content_frame, orient=tk.VERTICAL)
@@ -12,6 +15,14 @@ def setup_plot(self):
     self.lower_frame = ttk.Frame(self.paned_window)
     self.paned_window.add(self.upper_frame, weight=2)
     self.paned_window.add(self.lower_frame, weight=8)
+    
+    self.plot_title = ttk.Label(
+        self.upper_frame,
+        text="Cell Distribution",
+        font=('Helvetica', 12, 'bold')
+    )
+    self.plot_title.pack(pady=(5,0))
+    
     self.fig, self.ax = plt.subplots(figsize=(16, 1.8))
     self.canvas_plot = FigureCanvasTkAgg(self.fig, master=self.upper_frame)
     self.canvas_plot.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -21,107 +32,10 @@ def setup_plot(self):
     configure_initial_plot(self)
     self.lower_box = ttk.Frame(self.lower_frame, style='Bordered.TFrame')
     self.lower_box.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    setup_table(self)
-
-def setup_table(self):
-    table_container = ttk.Frame(self.lower_box)
-    table_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-    title_label = ttk.Label(
-        table_container, 
-        text="Table Title", 
-        font=('Helvetica', 12, 'bold')
-    )
-    title_label.pack(pady=(0,5))
-    outer_frame = ttk.Frame(table_container, style='OuterBorder.TFrame')
-    outer_frame.pack(fill=tk.BOTH)
     
-    table_frame = ttk.Frame(outer_frame, style='Table.TFrame')
-    table_frame.pack(fill=tk.BOTH, padx=1, pady=1)  
-    setup_table_styles()
-    for i in range(3):
-        if i > 0:  
-            separator = ttk.Separator(table_frame, orient='horizontal')
-            separator.pack(fill=tk.X)
-        row_frame = ttk.Frame(table_frame, style='Row.TFrame', height=25)
-        row_frame.pack(fill=tk.X)
-        row_frame.pack_propagate(False)  
-        
-        col1 = ttk.Frame(row_frame, style='Column.TFrame')
-        separator = ttk.Separator(row_frame, orient='vertical')
-        col2 = ttk.Frame(row_frame, style='ColumnRight.TFrame')
-        
-        col1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        separator.pack(side=tk.LEFT, fill=tk.Y)
-        col2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        if i == 0:
-            col1_label = ttk.Label(
-                col1,
-                text="Cell 1,1",
-                style='Header1.TLabel',
-                anchor='center'
-            )
-            col2_label = ttk.Label(
-                col2,
-                text="Cell 1,2",
-                style='Header2.TLabel',
-                anchor='center'
-            )
-        else:
-            col1_label = ttk.Label(
-                col1,
-                text=f"Cell {i+1},1",
-                style='Cell.TLabel',
-                anchor='center'
-            )
-            col2_label = ttk.Label(
-                col2,
-                text=f"Cell {i+1},2",
-                style='CellWhite.TLabel',
-                anchor='center'
-            )
-        col1_label.pack(fill=tk.BOTH, expand=True)
-        col2_label.pack(fill=tk.BOTH, expand=True)
-
-def setup_table_styles():
-    style = ttk.Style()
-    style.configure('OuterBorder.TFrame', 
-                   relief='solid', 
-                   borderwidth=2)
-    style.configure('Table.TFrame', 
-                   relief='solid', 
-                   borderwidth=1)
-    style.configure('Row.TFrame', 
-                   relief='flat', 
-                   borderwidth=0)
-    style.configure('Column.TFrame', 
-                   relief='solid', 
-                   borderwidth=0)
-    style.configure('ColumnRight.TFrame', 
-                   relief='solid', 
-                   borderwidth=2)
-    style.configure('TSeparator', 
-                   background='black')
-    style.configure('Header1.TLabel', 
-                   background='#1e40af',
-                   foreground='white',
-                   padding=2,
-                   font=('Helvetica', 9))
-    style.configure('Header2.TLabel',
-                   background='white',
-                   foreground='red',
-                   padding=2,
-                   font=('Helvetica', 9))
-    style.configure('Cell.TLabel',
-                   background='#dbeafe',
-                   foreground='black',
-                   padding=2,
-                   font=('Helvetica', 9))
-    style.configure('CellWhite.TLabel',
-                   background='white',
-                   foreground='black',
-                   padding=2,
-                   font=('Helvetica', 9))
+    # Import table setup from table.py
+    from tabs.main_tab.table import setup_table
+    setup_table(self)
 
 def configure_initial_plot(self):
     self.ax.grid(True, which='major', linestyle='-', alpha=0.8)
@@ -195,7 +109,7 @@ def plot_data(self):
     self.ax.clear()
     self.plot_lines.clear()
     
-    colors = plt.cm.tab10(np.linspace(0, 1, len(selected_keys)))
+    colors = cm.rainbow(np.linspace(0, 1, len(selected_keys)))
     
     for idx, key in enumerate(selected_keys):
         data = self.read_data_for_key(key)
@@ -238,6 +152,6 @@ def clear_plots(self):
     self.ax.clear()
     self.plot_lines.clear()
     self.marked_points.clear()
-    self.canvas_plot.draw()
+    configure_initial_plot(self)
     for var in self.checkboxes.values():
         var.set(False)
