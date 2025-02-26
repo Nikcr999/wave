@@ -33,9 +33,12 @@ def setup_plot(self):
     self.lower_box = ttk.Frame(self.lower_frame, style='Bordered.TFrame')
     self.lower_box.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
     
-    # Import table setup from table.py
     from tabs.main_tab.table import setup_table
     setup_table(self)
+    
+    # Initialize empty pattern analysis table
+    if hasattr(self, 'update_pattern_analysis_table'):
+        self.update_pattern_analysis_table()
 
 def configure_initial_plot(self):
     self.ax.grid(True, which='major', linestyle='-', alpha=0.8)
@@ -147,11 +150,30 @@ def plot_data(self):
         self.marked_points.append((marker, vline, text))
     
     self.canvas_plot.draw()
+    
+    # Analyze all selected data for pattern analysis
+    analyze_all_selected(self, selected_keys)
+
+def analyze_all_selected(self, selected_keys):
+    """
+    Analyze all selected data for low-high-low patterns
+    """
+    try:
+        from tabs.main_tab.pattern_analysis import analyze_all_selected_data
+        analyze_all_selected_data(self, selected_keys)
+    except ImportError:
+        print("Pattern analysis module not found")
 
 def clear_plots(self):
     self.ax.clear()
     self.plot_lines.clear()
     self.marked_points.clear()
     configure_initial_plot(self)
+    
+    # Clear the pattern analysis table
+    if hasattr(self, 'clear_pattern_analysis'):
+        self.clear_pattern_analysis()
+        
+    # Clear all checkbox selections
     for var in self.checkboxes.values():
         var.set(False)

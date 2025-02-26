@@ -5,10 +5,11 @@ from tabs.help_tab.help import HelpTab
 from tabs.main_tab.ui_setup import setup_ui
 from tabs.main_tab.sidebar_setup import setup_sidebar
 from tabs.main_tab.plot import (
-    setup_plot, plot_data, clear_plots, configure_plot
+    setup_plot, plot_data, clear_plots, configure_plot, analyze_all_selected
 )
 from tabs.main_tab.table import (
-    update_table_title, populate_table_data
+    update_table_title, populate_table_data, update_pattern_analysis, 
+    remove_pattern_analysis, clear_pattern_analysis, update_pattern_analysis_table
 )
 from tabs.main_tab.read import (
     load_file, update_checkboxes, _parse_key, check_key_exists, read_data_for_key
@@ -52,10 +53,13 @@ class CellDistributionApp:
         self.find_nearest = lambda x_click, y_click=None: find_nearest(self, x_click, y_click)
         self._clear_hover_elements = lambda: _clear_hover_elements(self)
         
-        # Table related methods
-        self.update_table_title = lambda title: update_table_title(self, title)
-        self.populate_table_data = lambda headers, data: populate_table_data(self, headers, data)
-        
+        # Table pattern analysis methods
+        self.update_pattern_analysis = lambda key, patterns_data: update_pattern_analysis(self, key, patterns_data)
+        self.remove_pattern_analysis = lambda key: remove_pattern_analysis(self, key)
+        self.clear_pattern_analysis = lambda: clear_pattern_analysis(self)
+        self.update_pattern_analysis_table = lambda: update_pattern_analysis_table(self)
+        self.store_pattern_data = lambda key, patterns_data: store_pattern_data(self, key, patterns_data)
+
         self._setup_styles()
         self._setup_notebook()
         self._setup_buttons()
