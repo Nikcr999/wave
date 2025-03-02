@@ -3,32 +3,82 @@ import tkinter as tk
 import os
 
 def load_file(self):
-    self.file_path = filedialog.askopenfilename(filetypes=[("Text file", "*.txt")])
-    if self.file_path:
+    file_paths = filedialog.askopenfilenames(filetypes=[("Text file", "*.txt")])
+    if file_paths:
         try:
-            self.update_checkboxes()
-            self.plot_title.config(text="Cell Distribution")
+            # Initialize file paths list if not already done
+            if not hasattr(self, 'file_paths'):
+                self.file_paths = []
+            
+            # Check for duplicate files and only add new ones
+            new_files_added = False
+            for file_path in file_paths:
+                # Check if this exact file path exists
+                if file_path not in self.file_paths:
+                    # Also check if file with same name already exists (different path)
+                    file_name = os.path.basename(file_path)
+                    duplicate = False
+                    for existing_path in self.file_paths:
+                        if os.path.basename(existing_path) == file_name:
+                            duplicate = True
+                            break
+                    
+                    # If not a duplicate, add it
+                    if not duplicate:
+                        self.file_paths.append(file_path)
+                        new_files_added = True
+            
+            # Only update UI if we actually added new files
+            if new_files_added:
+                self.update_checkboxes()
+                # Set title to just "Cell Distribution" without the filename
+                self.plot_title.config(text="Cell Distribution")
+            else:
+                messagebox.showinfo("Information", "No new files added. Same files are already loaded.")
+                
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load file: {str(e)}")
 
 def read_data_for_key(self, target_key):
-    with open(self.file_path, 'r') as file:
+    # Split target key to extract file index and data key
+    parts = target_key.split('|')
+    if len(parts) < 2:
+        return []
+    
+    file_idx = int(parts[0])
+    data_key = parts[1]
+    
+    if not hasattr(self, 'file_paths') or file_idx >= len(self.file_paths):
+        return []
+    
+    file_path = self.file_paths[file_idx]
+    
+    # Get data point length if we already know it
+    data_length = self.data_point_length if hasattr(self, 'data_point_length') else None
+    
+    with open(file_path, 'r') as file:
         lines = file.readlines()
     
     current_data = []
     current_key = None
     inside_data_block = False
     found_data = []
+    skip_count = 0
     
-    for line in lines:
+    for i, line in enumerate(lines):
         line = line.strip()
         
+        # Skip lines if we're counting through data points and know how many to skip
+        if skip_count > 0:
+            skip_count -= 1
+            continue
+            
         if line.startswith('START_SANPO'):
             inside_data_block = True
             continue
             
         if line.startswith('END_SANPO'):
-            if current_key == target_key and current_data:
+            if current_key == data_key and current_data:
                 found_data = current_data
             inside_data_block = False
             current_data = []
@@ -39,14 +89,36 @@ def read_data_for_key(self, target_key):
             continue
             
         if any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
-            if current_key == target_key and current_data:
+            if current_key == data_key and current_data:
                 found_data = current_data.copy()
+                
+            # If we found data previously and now hit a new combination, we can return
+            if found_data:
+                return found_data
+                
             current_data = []
             current_key = _parse_key(self, line)
+            
+            # If we know data length and this isn't our target, skip ahead
+            if data_length is not None and current_key != data_key:
+                skip_count = data_length
         else:
             try:
                 value = float(line)
                 current_data.append(value)
+                
+                # If this is the first dataset, save its length for future optimizations
+                if len(current_data) == 1 and data_length is None:
+                    # Count how many numerical lines follow
+                    count = 1
+                    for next_line in lines[i+1:]:
+                        next_line = next_line.strip()
+                        try:
+                            float(next_line)
+                            count += 1
+                        except ValueError:
+                            break
+                    self.data_point_length = count
             except ValueError:
                 continue
                 
@@ -68,33 +140,114 @@ def update_checkboxes(self):
     container_frame = ttk.Frame(self.scrollable_frame, style='TFrame')
     container_frame.pack(fill=tk.BOTH, expand=True)
     
-    all_items = []
-    
-    for wls in range(175, -1, -1):
-        for ssl in range(8):
-            key = f"w_{wls}_{ssl}"
-            all_items.append((key, f"WLS:{wls}, SSL:{ssl}"))
+    # Process each file and create blocks
+    if hasattr(self, 'file_paths'):
+        for file_idx, file_path in enumerate(self.file_paths):
+            # Extract blocks from the file
+            blocks = extract_blocks_from_file(self, file_idx, file_path)
             
-    for dummy in range(2, 0, -1):
-        for ssl in range(8):
-            key = f"d_{dummy}_{ssl}"
-            all_items.append((key, f"DUMMY:{dummy}, SSL:{ssl}"))
-            
-    cdummy_ssl_ranges = {3: range(8), 0: range(7)}
-    for cdummy, ssl_range in cdummy_ssl_ranges.items():
-        for ssl in ssl_range:
-            key = f"c_{cdummy}_{ssl}"
-            all_items.append((key, f"CDUMMY:{cdummy}, SSL:{ssl}"))
+            # Add each block to the container
+            for block_name, items in blocks.items():
+                create_block(self, container_frame, block_name, items)
+
+def extract_blocks_from_file(self, file_idx, file_path):
+    blocks = {}
     
-    block_name = "Block_Name"
-    if hasattr(self, 'file_path') and self.file_path:
-        file_name = os.path.basename(self.file_path)
-        block_name = os.path.splitext(file_name)[0]
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            
+        block_info = None
+        inside_data_block = False
         
-        if hasattr(self, 'table_title_label'):
-            self.table_title_label.config(text=block_name)
+        for line in lines:
+            line = line.strip()
+            
+            if line.startswith('START_SANPO'):
+                inside_data_block = True
+                continue
+                
+            if line.startswith('END_SANPO'):
+                inside_data_block = False
+                continue
+            
+            if inside_data_block and any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
+                # Extract the block info part (everything up to WLS, DUMMY, or CDUMMY)
+                if block_info is None:
+                    block_info = extract_block_info(line)
+                
+                if block_info not in blocks:
+                    blocks[block_info] = []
+                
+                # Parse the key for this line
+                data_key = _parse_key(self, line)
+                
+                # Create a composite key that includes file index and data key
+                composite_key = f"{file_idx}|{data_key}"
+                
+                # Get label for display (just the combination part)
+                display_label = create_display_label(line)
+                
+                # Add to block items
+                blocks[block_info].append((composite_key, display_label))
+                
+    except Exception as e:
+        print(f"Error extracting blocks from {file_path}: {str(e)}")
     
-    create_block(self, container_frame, block_name, all_items)
+    return blocks
+
+def extract_block_info(line):
+    """Extract abbreviated block identifier from the line (using initials)"""
+    # Find where the WLS, DUMMY, or CDUMMY part starts
+    split_indices = []
+    if "WLS:" in line:
+        split_indices.append(line.find("WLS:"))
+    if "DUMMY:" in line:
+        split_indices.append(line.find("DUMMY:"))
+    if "CDUMMY:" in line:
+        split_indices.append(line.find("CDUMMY:"))
+    
+    # If we found any split points, use the earliest one
+    if split_indices:
+        split_point = min(split_indices)
+        block_part = line[:split_point].strip()
+        if block_part.endswith(','):
+            block_part = block_part[:-1]  # Remove trailing comma
+        
+        # Convert to abbreviated format (F:0,C:0,W:0,D:0,B:244)
+        parts = [part.strip() for part in block_part.split(',')]
+        abbreviated_parts = []
+        
+        for part in parts:
+            if ':' in part:
+                prefix, value = part.split(':', 1)
+                abbreviated_parts.append(f"{prefix[0]}:{value}")
+        
+        return ",".join(abbreviated_parts)
+    
+    # Fallback if we couldn't split properly
+    return "Unknown"
+
+def create_display_label(line):
+    """Create a display label for a data point - just the combination part"""
+    # Find where the WLS, DUMMY, or CDUMMY part starts
+    split_indices = []
+    if "WLS:" in line:
+        split_indices.append(line.find("WLS:"))
+    if "DUMMY:" in line:
+        split_indices.append(line.find("DUMMY:"))
+    if "CDUMMY:" in line:
+        split_indices.append(line.find("CDUMMY:"))
+    
+    # If we found any split points, use the earliest one
+    if split_indices:
+        split_point = min(split_indices)
+        # Get the combination part (everything after the split point)
+        combination_part = line[split_point:].strip()
+        return combination_part
+    
+    # Fallback
+    return line
 
 def create_block(self, parent, block_name, items):
     block_frame = ttk.Frame(parent, style='TFrame')

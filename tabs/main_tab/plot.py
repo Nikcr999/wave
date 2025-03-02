@@ -80,30 +80,18 @@ def plot_data(self):
         messagebox.showerror("Invalid Resolution", "Please enter a valid positive integer for resolution.")
         return
 
+    # Handle manual input - we'll simplify this for now
     wls = self.wls_var.get().strip()
     dummy = self.dummy_var.get().strip()
     cdummy = self.cdummy_var.get().strip()
     ssl = self.ssl_var.get().strip()
 
-    manual_key = None
-    if ssl.isdigit():
-        ssl = int(ssl)
-        if wls and wls.isdigit():
-            manual_key = f"w_{wls}_{ssl}"
-        elif dummy:
-            manual_key = f"d_{dummy}_{ssl}"
-        elif cdummy:
-            manual_key = f"c_{cdummy}_{ssl}"
-
-    if manual_key and manual_key in self.checkboxes:
-        self.checkboxes[manual_key].set(True)
-
+    # Get all selected keys from checkboxes
     selected_keys = [(key, var.get()) for key, var in self.checkboxes.items()]
     selected_keys = [key for key, checked in selected_keys if checked]
     
     if not selected_keys:
-        if manual_key:
-            messagebox.showerror("Invalid Input", "The specified combination is not in the available list.")
+        # No popup message, just clear plots
         self.clear_plots()
         return
     
@@ -114,19 +102,56 @@ def plot_data(self):
     
     colors = cm.rainbow(np.linspace(0, 1, len(selected_keys)))
     
+    # Track the last checked key - this will be the one that determines the table title
+    last_checked_key = selected_keys[-1]  # Get the last item in the list
+    self.last_selected_key = last_checked_key  # Store for pattern analysis
+    
+    # Update the table title with the block name of the last checked item
+    if hasattr(self, 'table_title_label'):
+        key_parts = last_checked_key.split('|')
+        if len(key_parts) >= 2:
+            file_idx = int(key_parts[0])
+            if hasattr(self, 'file_paths') and file_idx < len(self.file_paths):
+                # Find the actual block name from the file
+                from tabs.main_tab.read import extract_block_info
+                with open(self.file_paths[file_idx], 'r') as file:
+                    for line in file:
+                        if any(x in line for x in ['WLS:', 'DUMMY:', 'CDUMMY:']):
+                            block_name = extract_block_info(line)
+                            self.table_title_label.config(text=block_name)
+                            break
+    
+    # Calculate and display percentage for the last checked item
+    if hasattr(self, 'update_percentage_row'):
+        data = self.read_data_for_key(last_checked_key)
+        if data:
+            # Calculate some percentage based on the data
+            percentage = sum(data) / len(data) / 100
+            self.update_percentage_row(percentage)
+    
     for idx, key in enumerate(selected_keys):
         data = self.read_data_for_key(key)
         if data:
             x = np.arange(-2.4, -2.4 + len(data) * resolution, resolution)
             
-            key_parts = key.split('_')
-            key_type = key_parts[0]
-            if key_type == 'w':
-                label = f"WLS:{key_parts[1]}, SSL:{key_parts[2]}"
-            elif key_type == 'd':
-                label = f"DUMMY:{key_parts[1]}, SSL:{key_parts[2]}"
+            # Extract data key from composite key (file_idx|data_key)
+            key_parts = key.split('|')
+            if len(key_parts) >= 2:
+                data_key = key_parts[1]
+                data_key_parts = data_key.split('_')
+                
+                if len(data_key_parts) >= 3:
+                    key_type = data_key_parts[0]
+                    if key_type == 'w':
+                        label = f"WLS:{data_key_parts[1]}, SSL:{data_key_parts[2]}"
+                    elif key_type == 'd':
+                        label = f"DUMMY:{data_key_parts[1]}, SSL:{data_key_parts[2]}"
+                    else:
+                        label = f"CDUMMY:{data_key_parts[1]}, SSL:{data_key_parts[2]}"
+                else:
+                    label = data_key
             else:
-                label = f"CDUMMY:{key_parts[1]}, SSL:{key_parts[2]}"
+                label = key
             
             line, = self.ax.plot(x, data, '-', label=label, color=colors[idx])
             self.plot_lines[key] = line
@@ -170,9 +195,21 @@ def clear_plots(self):
     self.marked_points.clear()
     configure_initial_plot(self)
     
+    # Reset the last selected key
+    if hasattr(self, 'last_selected_key'):
+        self.last_selected_key = None
+    
     # Clear the pattern analysis table
     if hasattr(self, 'clear_pattern_analysis'):
         self.clear_pattern_analysis()
+    
+    # Update the table title to default
+    if hasattr(self, 'table_title_label'):
+        self.table_title_label.config(text="Table Title")
+    
+    # Update the percentage row to show empty or default message
+    if hasattr(self, 'update_percentage_row'):
+        self.update_percentage_row(None)  # None indicates no percentage to display
         
     # Clear all checkbox selections
     for var in self.checkboxes.values():

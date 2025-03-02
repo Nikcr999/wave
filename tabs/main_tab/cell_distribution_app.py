@@ -2,14 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 from tabs.developer_tab.developer_option import DeveloperOptionTab
 from tabs.help_tab.help import HelpTab
-from tabs.main_tab.ui_setup import setup_ui
 from tabs.main_tab.sidebar_setup import setup_sidebar
 from tabs.main_tab.plot import (
     setup_plot, plot_data, clear_plots, configure_plot, analyze_all_selected
 )
 from tabs.main_tab.table import (
     update_table_title, populate_table_data, update_pattern_analysis, 
-    remove_pattern_analysis, clear_pattern_analysis, update_pattern_analysis_table
+    remove_pattern_analysis, clear_pattern_analysis, update_pattern_analysis_table,
+    update_percentage_row
 )
 from tabs.main_tab.read import (
     load_file, update_checkboxes, _parse_key, check_key_exists, read_data_for_key
@@ -31,6 +31,8 @@ class CellDistributionApp:
         self.hover_elements = {'text': None, 'line': None}
         self.checkboxes = {}
         self.input_dialog = None
+        self.file_paths = []  # Initialize as empty list to store multiple file paths
+        self.data_point_length = None  # Will store the length of data points for optimization
         
         self.resolution_var = tk.StringVar(value="40")
         self.wls_var = tk.StringVar()
@@ -58,14 +60,14 @@ class CellDistributionApp:
         self.remove_pattern_analysis = lambda key: remove_pattern_analysis(self, key)
         self.clear_pattern_analysis = lambda: clear_pattern_analysis(self)
         self.update_pattern_analysis_table = lambda: update_pattern_analysis_table(self)
-        self.store_pattern_data = lambda key, patterns_data: store_pattern_data(self, key, patterns_data)
-
+        self.update_percentage_row = lambda percentage: update_percentage_row(self, percentage)
+        
         self._setup_styles()
         self._setup_notebook()
         self._setup_buttons()
         self._setup_containers()
         self._initialize_data()
-        self._setup_ui()
+        self._setup_ui_internally()  # Changed to internal method instead of importing
 
     def toggle_sidebar(self):
         if self.sidebar_expanded:
@@ -76,7 +78,7 @@ class CellDistributionApp:
             self.sidebar_expanded = False
         else:
             self.main_container.forget(self.sidebar)
-            self.main_container.add(self.sidebar, width=150)
+            self.main_container.add(self.sidebar, width=200)  # Increased from 150 to 200
             self.toggle_btn.configure(text="◄")
             self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             self.sidebar_expanded = True
@@ -164,8 +166,15 @@ class CellDistributionApp:
     def _initialize_data(self):
         self.sidebar_expanded = True
     
-    def _setup_ui(self):
-        setup_ui(self)  
+    def _setup_ui_internally(self):
+        # This replaces the imported setup_ui function
+        self.resolution_var = tk.StringVar(value="40")
+        self.wls_var = tk.StringVar()
+        self.dummy_var = tk.StringVar()
+        self.cdummy_var = tk.StringVar()
+        self.ssl_var = tk.StringVar()
+        
+        # Now call setup_plot after setting up variables
         setup_plot(self)
 
     def show_manual_input(self):

@@ -17,11 +17,12 @@ def setup_sidebar(self):
     scroll_frame = ttk.Frame(content_frame, style='TFrame')
     scroll_frame.pack(fill=tk.BOTH, expand=True)
     
+    # Increase the width of the canvas to accommodate longer block names
     self.canvas = tk.Canvas(
         scroll_frame, 
         bg='white',
         highlightthickness=0,
-        width=150
+        width=200  # Increased from 150 to 200
     )
     
     y_scrollbar = ttk.Scrollbar(
