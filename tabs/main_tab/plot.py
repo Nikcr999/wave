@@ -178,6 +178,10 @@ def plot_data(self):
     
     # Analyze all selected data for pattern analysis
     analyze_all_selected(self, selected_keys)
+    
+    # Update the analyze button (Excel integration)
+    from tabs.main_tab.table import update_analyze_button
+    update_analyze_button(self)
 
 def analyze_all_selected(self, selected_keys):
     """
@@ -214,3 +218,64 @@ def clear_plots(self):
     # Clear all checkbox selections
     for var in self.checkboxes.values():
         var.set(False)
+        
+    # Update the analyze button (Excel integration)
+    from tabs.main_tab.table import update_analyze_button
+    update_analyze_button(self)
+
+# Excel Integration - Vertical Lines Plotting
+def plot_excel_voltage_lines(self):
+    """Plot vertical lines for voltage values extracted from Excel"""
+    if not hasattr(self, 'excel_handler') or not self.excel_handler.excel_file_path:
+        messagebox.showwarning("Warning", "No Excel file loaded.")
+        return
+        
+    # Process the selected checkbox to get voltage data
+    success, data_dict = self.excel_handler.process_selected_checkbox()
+    
+    if not success or not data_dict:
+        messagebox.showwarning("Warning", "No voltage data found for this selection.")
+        return
+        
+    # Get the WLS from the last selected key
+    try:
+        key = self.last_selected_key
+        key_parts = key.split('|')
+        data_key = key_parts[1]
+        key_type_parts = data_key.split('_')
+        wls = key_type_parts[1]
+        
+        if wls not in data_dict:
+            return
+            
+        # Plot vertical lines for each voltage value
+        line_count = 0
+        for mat_plane, voltages in data_dict[wls].items():
+            for voltage in voltages:
+                if hasattr(self, 'ax'):
+                    # Create vertical line
+                    vline = self.ax.axvline(x=voltage, color='green', linestyle='-', alpha=0.7)
+                    
+                    # Add text label
+                    text = self.ax.text(
+                        voltage, self.ax.get_ylim()[0],
+                        f'{voltage:.3f}V',
+                        bbox=dict(boxstyle='round,pad=0.5', fc='white', alpha=0.7, ec='gray'),
+                        ha='center', va='bottom',
+                        fontsize=8,
+                        rotation=90
+                    )
+                    
+                    # Add to marked points so they can be cleared properly
+                    self.marked_points.append((None, vline, text))
+                    line_count += 1
+        
+        # Redraw the canvas
+        if hasattr(self, 'canvas_plot'):
+            self.canvas_plot.draw()
+            
+        if line_count > 0:
+            messagebox.showinfo("Analysis Complete", f"Added {line_count} voltage lines.")
+            
+    except Exception as e:
+        messagebox.showerror("Error", f"Error plotting voltage lines: {str(e)}")

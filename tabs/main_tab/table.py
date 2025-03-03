@@ -88,6 +88,9 @@ def setup_table(self):
     self.pattern_data = {}
     
     setup_table_styles()
+    
+    # Setup the analyze button if Excel is loaded
+    setup_analyze_button(self)
 
 def setup_table_styles():
     style = ttk.Style()
@@ -284,6 +287,9 @@ def update_pattern_analysis_table(self):
             anchor='center'
         )
         empty_label.pack(fill=tk.X, expand=True, pady=5)
+        
+        # Update the analyze button
+        setup_analyze_button(self)
         return
     
     # Get only the data for the last selected key
@@ -297,6 +303,9 @@ def update_pattern_analysis_table(self):
             anchor='center'
         )
         empty_label.pack(fill=tk.X, expand=True, pady=5)
+        
+        # Update the analyze button
+        setup_analyze_button(self)
         return
     
     data = self.pattern_data[last_key]
@@ -311,6 +320,9 @@ def update_pattern_analysis_table(self):
             anchor='center'
         )
         empty_label.pack(fill=tk.X, expand=True, pady=5)
+        
+        # Update the analyze button
+        setup_analyze_button(self)
         return
     
     # Configure columns - first column for key name, rest for patterns
@@ -354,7 +366,7 @@ def update_pattern_analysis_table(self):
             else:
                 display_key = f"CDUMMY:{key_type_parts[1]}, SSL:{key_type_parts[2]}"
         else:
-            display_key = key
+            display_key = last_key
     else:
         # Legacy key format
         key_type_parts = last_key.split('_')
@@ -392,6 +404,9 @@ def update_pattern_analysis_table(self):
             anchor='center'
         )
         cell.grid(row=1, column=i+1, sticky='ew', ipady=2)
+    
+    # Update the analyze button
+    setup_analyze_button(self)
 
 def update_pattern_analysis(self, key, patterns_data):
     """
@@ -428,3 +443,53 @@ def clear_pattern_analysis(self):
     if hasattr(self, 'pattern_data'):
         self.pattern_data = {}
         update_pattern_analysis_table(self)
+
+# Excel integration functions
+def setup_analyze_button(self):
+    """Setup the Analyze button that appears when checkboxes are checked"""
+    # Remove existing button if it exists
+    if hasattr(self, 'analyze_btn') and self.analyze_btn and self.analyze_btn.winfo_exists():
+        self.analyze_btn.destroy()
+        self.analyze_btn = None
+        
+    # Check if any checkbox is checked
+    any_checked = False
+    for var in self.checkboxes.values():
+        if var.get():
+            any_checked = True
+            break
+            
+    if any_checked and hasattr(self, 'excel_handler') and self.excel_handler.excel_file_path:
+        # Create frame for the button at the bottom right
+        if hasattr(self, 'analyze_btn_frame') and self.analyze_btn_frame:
+            self.analyze_btn_frame.destroy()
+            
+        self.analyze_btn_frame = ttk.Frame(self.lower_box)
+        self.analyze_btn_frame.pack(side=tk.BOTTOM, anchor=tk.SE, padx=20, pady=10)
+        
+        # Create the Analyze button
+        from tabs.main_tab.plot import plot_excel_voltage_lines
+        
+        self.analyze_btn = tk.Button(
+            self.analyze_btn_frame,
+            text="Analyze",
+            command=lambda: plot_excel_voltage_lines(self),
+            bg='#ff9900',
+            fg='black',
+            font=('Helvetica', 9),
+            height=2,
+            width=8,
+            relief='raised',
+            borderwidth=1
+        )
+        self.analyze_btn.pack(side=tk.RIGHT)
+    else:
+        # No checkbox checked or no Excel file, remove button if it exists
+        if hasattr(self, 'analyze_btn_frame') and self.analyze_btn_frame:
+            self.analyze_btn_frame.destroy()
+            self.analyze_btn_frame = None
+            self.analyze_btn = None
+
+def update_analyze_button(self):
+    """Update the analyze button visibility based on checkbox state"""
+    setup_analyze_button(self)

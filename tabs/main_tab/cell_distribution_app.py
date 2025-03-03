@@ -9,13 +9,14 @@ from tabs.main_tab.plot import (
 from tabs.main_tab.table import (
     update_table_title, populate_table_data, update_pattern_analysis, 
     remove_pattern_analysis, clear_pattern_analysis, update_pattern_analysis_table,
-    update_percentage_row
+    update_percentage_row, update_analyze_button
 )
 from tabs.main_tab.read import (
     load_file, update_checkboxes, _parse_key, check_key_exists, read_data_for_key
 )
 from tabs.main_tab.mark import onclick, undo_mark, clear_marks
 from tabs.main_tab.hover import on_hover, find_nearest, _clear_hover_elements
+from tabs.main_tab.excel import setup_excel_handler
 
 class CellDistributionApp:
     VERSION = "1.0.0"
@@ -46,8 +47,8 @@ class CellDistributionApp:
         self._parse_key = lambda line: _parse_key(self, line)
         self.check_key_exists = lambda key: check_key_exists(self, key)
         self.read_data_for_key = lambda key: read_data_for_key(self, key)
-        self.plot_data = lambda: plot_data(self)
-        self.clear_plots = lambda: clear_plots(self)
+        self.plot_data = lambda: self._plot_data()
+        self.clear_plots = lambda: self._clear_plots()
         self.onclick = lambda event: onclick(self, event)
         self.undo_mark = lambda: undo_mark(self)
         self.clear_marks = lambda: clear_marks(self)
@@ -68,6 +69,35 @@ class CellDistributionApp:
         self._setup_containers()
         self._initialize_data()
         self._setup_ui_internally()  # Changed to internal method instead of importing
+        
+        # Setup Excel handler
+        setup_excel_handler(self)
+        
+        # Setup window close handler
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def _plot_data(self):
+        """Wrapper for the original plot_data function with Excel button update"""
+        # Call the original plot_data function
+        plot_data(self)
+        
+        # Update the analyze button
+        update_analyze_button(self)
+        
+    def _clear_plots(self):
+        """Wrapper for the original clear_plots function with Excel button update"""
+        # Call the original clear_plots function
+        clear_plots(self)
+        
+        # Update the analyze button
+        update_analyze_button(self)
+        
+    def on_close(self):
+        """Clean up resources when the application is closed"""
+        # Close Excel if it's open
+        if hasattr(self, 'excel_handler'):
+            self.excel_handler.close()
+        self.root.destroy()
 
     def toggle_sidebar(self):
         if self.sidebar_expanded:
