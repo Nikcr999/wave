@@ -128,27 +128,130 @@ def check_key_exists(self, key):
     return True
 
 def update_checkboxes(self):
+    # Clear existing checkboxes
     for widget in self.scrollable_frame.winfo_children():
         widget.destroy()
-    self.checkboxes.clear()
-    
+
+    # Clear checkbox variables
+    if hasattr(self, 'checkboxes'):
+        self.checkboxes.clear()
+    else:
+        self.checkboxes = {}
+
+    # Create a new frame inside the canvas to hold the checkboxes
+    self.inner_frame = ttk.Frame(self.canvas)
+    self.canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
+
+    # Configure style for checkboxes
     style = ttk.Style()
     style.configure('Checkbox.TCheckbutton', 
                    background='white',
                    font=('Helvetica', 9))
-    
-    container_frame = ttk.Frame(self.scrollable_frame, style='TFrame')
-    container_frame.pack(fill=tk.BOTH, expand=True)
-    
-    # Process each file and create blocks
-    if hasattr(self, 'file_paths'):
-        for file_idx, file_path in enumerate(self.file_paths):
-            # Extract blocks from the file
-            blocks = extract_blocks_from_file(self, file_idx, file_path)
-            
-            # Add each block to the container
-            for block_name, items in blocks.items():
-                create_block(self, container_frame, block_name, items)
+
+    # Sample data structure (replace with real data extraction)
+    sample_blocks = {
+        "F:0,C:0,W:0": [(f"0|sample_{i}", f"WLS: {i}, SSL: 1") for i in range(1, 6000)],
+        "F:1,C:1,W:1": [(f"1|sample_{i}", f"DUMMY: A{i}, SSL: 2") for i in range(1, 8000)],
+        "F:2,C:2,W:2": [(f"2|sample_{i}", f"CDUMMY: B{i}, SSL: 3") for i in range(1, 10000)]
+    }
+
+    # Create blocks from sample data
+    for block_name, items in sample_blocks.items():
+        create_block(self, self.inner_frame, block_name, items)
+
+    # Update the canvas to fit the new content
+    self.inner_frame.update_idletasks()
+    self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+
+def create_block(self, parent, block_name, items):
+    block_frame = ttk.Frame(parent)
+    block_frame.pack(fill=tk.X, anchor=tk.W, pady=2)
+
+    # Create header frame for the block title and toggle button
+    header_frame = ttk.Frame(block_frame)
+    header_frame.pack(fill=tk.X)
+
+    # Create a separate frame for the items that can be toggled
+    items_frame = ttk.Frame(block_frame)
+
+    # Toggle button for expanding/collapsing the block
+    toggle_btn = tk.Button(
+        header_frame,
+        text="+",
+        width=2,
+        font=('Arial', 8, 'bold'),
+        bg='white',
+        relief='flat'
+    )
+    toggle_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+    # Select all checkbox for the block
+    select_all_var = tk.BooleanVar()
+    select_all_cb = ttk.Checkbutton(
+        header_frame,
+        text=block_name,
+        variable=select_all_var,
+        style='Checkbox.TCheckbutton'
+    )
+    select_all_cb.pack(side=tk.LEFT, padx=5, fill=tk.X)
+
+    # List to store all checkbox variables for this block
+    item_vars = []
+
+    # Create checkboxes for each item
+    for key, label in items:
+        var = tk.BooleanVar()
+        self.checkboxes[key] = var
+        item_vars.append(var)
+
+        checkbox = ttk.Checkbutton(
+            items_frame,
+            text=label,
+            variable=var,
+            style='Checkbox.TCheckbutton'
+        )
+        checkbox.pack(anchor=tk.W, padx=(20, 0), fill=tk.X)
+
+    # Force update geometry after adding checkboxes
+    items_frame.update_idletasks()
+
+    # Define toggle block function
+    def toggle_block():
+        if items_frame.winfo_manager():
+            toggle_btn.config(text="+")
+            items_frame.pack_forget()
+        else:
+            toggle_btn.config(text="-")
+            items_frame.pack(fill=tk.X)
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    # Attach command to toggle button
+    toggle_btn.config(command=toggle_block)
+
+    # Define function to toggle all items in the block
+    def toggle_all_items():
+        for var in item_vars:
+            var.set(select_all_var.get())
+        if hasattr(self, 'plot_data'):
+            self.plot_data()
+
+    # Attach command to select all checkbox
+    select_all_cb.config(command=toggle_all_items)
+
+    # Define function for individual item toggle
+    def item_toggled(event=None):
+        all_selected = all(var.get() for var in item_vars)
+        select_all_var.set(all_selected)
+        if hasattr(self, 'plot_data'):
+            self.plot_data()
+
+    # Attach toggle callback to each checkbox
+    for var in item_vars:
+        var.trace_add("write", lambda *args, v=var: item_toggled())
+
+    return block_frame
+
 
 def extract_blocks_from_file(self, file_idx, file_path):
     blocks = {}
@@ -249,67 +352,7 @@ def create_display_label(line):
     # Fallback
     return line
 
-def create_block(self, parent, block_name, items):
-    block_frame = ttk.Frame(parent, style='TFrame')
-    block_frame.pack(fill=tk.X, anchor=tk.W, pady=2)
-    
-    header_frame = ttk.Frame(block_frame, style='TFrame')
-    header_frame.pack(fill=tk.X)
-    
-    items_frame = ttk.Frame(block_frame, style='TFrame')
-    
-    toggle_btn = tk.Button(
-        header_frame,
-        text="+",
-        width=2,
-        font=('Arial', 8, 'bold'),
-        bg='white',
-        relief='flat',
-        command=lambda: toggle_block(toggle_btn, items_frame)
-    )
-    toggle_btn.pack(side=tk.LEFT, padx=(0, 5))
-    
-    select_all_var = tk.BooleanVar()
-    select_all_cb = ttk.Checkbutton(
-        header_frame,
-        text=block_name,
-        variable=select_all_var,
-        style='Checkbox.TCheckbutton',
-        command=lambda: toggle_all_items(select_all_var, item_vars)
-    )
-    select_all_cb.pack(side=tk.LEFT, padx=5)
-    
-    item_vars = []
-    for key, label in items:
-        var = tk.BooleanVar()
-        self.checkboxes[key] = var
-        item_vars.append(var)
-        checkbox = ttk.Checkbutton(
-            items_frame,
-            text=label,
-            variable=var,
-            command=lambda v=var, k=key: item_toggled(v, item_vars, select_all_var),
-            style='Checkbox.TCheckbutton'
-        )
-        checkbox.pack(anchor=tk.W, padx=(20, 0))
-    
-    def toggle_block(btn, frame):
-        if frame.winfo_manager():
-            btn.config(text="+")
-            frame.pack_forget()
-        else:
-            btn.config(text="-")
-            frame.pack(fill=tk.X)
-    
-    def toggle_all_items(all_var, vars_list):
-        for var in vars_list:
-            var.set(all_var.get())
-        self.plot_data()
-    
-    def item_toggled(changed_var, all_vars, all_cb_var):
-        all_selected = all(var.get() for var in all_vars)
-        all_cb_var.set(all_selected)
-        self.plot_data()
+
 
 def _parse_key(self, line):
     parts = [part.strip() for part in line.split(',')]
