@@ -1,0 +1,38 @@
+import xlwings as xw
+
+# Open workbook
+wb = xw.Book("Summary.xlsx")
+ws = wb.sheets["Read_Level"]
+
+# Get headers
+headers = ws.range("1:1").expand('right').value
+
+# Chart position
+chart_row, chart_col = 25, 1
+
+# Create charts for each column pair
+for i in range(0, len(headers), 2):
+    if not headers[i]:
+        continue
+    
+    # Get data range (including headers)
+    data_range = ws.range((1, i+1), (ws.cells(ws.cells.rows.count, i+2).end('up').row, i+2))
+    
+    # Skip if no data
+    if data_range.rows.count <= 1:
+        continue
+    
+    # Create and position chart
+    chart = ws.charts.add(left=ws.range(chart_row, chart_col).left, 
+                         top=ws.range(chart_row, chart_col).top)
+    
+    # Set data and basic properties
+    chart.set_source_data(data_range)
+    chart.chart_type = 'column_clustered'
+    chart.api[1].HasLegend = False
+    
+    # Move to next position
+    chart_col += 10
+
+# Save
+wb.save()
