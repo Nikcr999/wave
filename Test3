@@ -1,0 +1,40 @@
+import xlwings as xw
+
+wb = xw.Book("Summary.xlsx")
+ws = wb.sheets["Read_Level"]
+
+header = ws.range("1:1").value
+chart_left = 0
+chart_top = 600
+
+for i in range(0, len(header), 2):
+    x_col = i + 1
+    y_col = i + 2
+
+    x_range_all = ws.range((2, x_col), (ws.cells.last_cell.row, x_col))
+    y_range_all = ws.range((2, y_col), (ws.cells.last_cell.row, y_col))
+
+    x_vals = x_range_all.value
+    y_vals = y_range_all.value
+
+    if not any(y_vals):
+        continue
+
+    count = y_vals.index(None) if None in y_vals else len(y_vals)
+    x_range = ws.range((2, x_col), (1 + count, x_col))
+    y_range = ws.range((2, y_col), (1 + count, y_col))
+
+    chart = ws.charts.add()
+    chart.chart_type = 'column_clustered'  # Vertical bars
+    chart.set_source_data(y_range)
+    chart.api[1].SeriesCollection(1).XValues = x_range.value
+    chart.api[1].SeriesCollection(1).DataLabels().ShowValue = True
+    chart.api[1].HasLegend = False
+    chart.chart_title.text = f"{header[i]} Distribution"
+
+    chart.left = chart_left
+    chart.top = chart_top
+    chart.width = 400
+    chart.height = 300
+
+    chart_left += 420
