@@ -1,0 +1,69 @@
+import xlwings as xw
+
+# Open the workbook and sheet
+wb = xw.Book("Summary.xlsx")
+ws = wb.sheets["Read_Level"]
+
+# Get headers from the first row
+headers = ws.range("1:1").expand('right').value
+
+# Starting position for charts
+chart_start_row = 25
+chart_start_col = 1
+
+# Process each pair of columns
+for i in range(0, len(headers), 2):
+    col_name = headers[i]
+    if not col_name:
+        continue
+    
+    # Get data for the pair
+    x_col = i + 1
+    data_col = i + 2
+    
+    # Find the last row with data
+    row = 2
+    while ws.range(row, data_col).value is not None:
+        row += 1
+    last_row = row - 1
+    
+    # Skip if no data
+    if last_row < 2:
+        continue
+    
+    # Create the chart
+    chart = ws.charts.add(
+        left=ws.range(chart_start_row, chart_start_col).left,
+        top=ws.range(chart_start_row, chart_start_col).top,
+        width=375,
+        height=225
+    )
+    
+    # Set chart type to Column (bar chart)
+    chart.chart_type = 'column_clustered'
+    
+    # Set the data source
+    chart.set_source_data(ws.range((1, x_col), (last_row, data_col)))
+    
+    # Configure the chart
+    chart.api[1].HasTitle = True
+    chart.api[1].ChartTitle.Text = f"{col_name} Distribution"
+    chart.api[1].Axes(1).HasTitle = True
+    chart.api[1].Axes(1).AxisTitle.Text = col_name
+    chart.api[1].Axes(2).HasTitle = True
+    chart.api[1].Axes(2).AxisTitle.Text = "Count"
+    
+    # Remove legend
+    chart.api[1].HasLegend = False
+    
+    # Add data labels
+    chart.api[1].SeriesCollection(1).HasDataLabels = True
+    chart.api[1].SeriesCollection(1).DataLabels.ShowValue = True
+    chart.api[1].SeriesCollection(1).DataLabels.Position = -4127  # xlLabelPositionOutsideEnd
+    
+    # Move to next chart position
+    chart_start_col += 10
+
+# Save the workbook
+wb.save()
+wb.close()
