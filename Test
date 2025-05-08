@@ -1,0 +1,74 @@
+import xlwings as xw
+
+# Open the workbook and target sheet
+wb = xw.Book("Summary.xlsx")
+ws = wb.sheets["Read_Level"]
+
+# Get the used range
+used_range = ws.used_range
+num_cols = used_range.columns.count
+header = ws.range((1, 1), (1, num_cols)).value[0]
+
+# Starting point for chart placement
+chart_top = 600  # Pixels from top
+chart_left = 0   # Pixels from left
+chart_offset = 350  # Space between charts horizontally
+
+for i in range(0, num_cols, 2):
+    col_name = header[i]
+    if not col_name:
+        continue
+
+    x_col = i + 1
+    y_col = i + 2
+
+    count_col_name = header[y_col - 1] if y_col - 1 < len(header) else None
+    if not count_col_name:
+        continue
+
+    # Get values from Excel
+    x_values = ws.range((2, x_col), ws.cells(ws.cells.last_cell.row, x_col)).value
+    count_values = ws.range((2, y_col), ws.cells(ws.cells.last_cell.row, y_col)).value
+
+    # Filter out trailing None values
+    data = [(x, y) for x, y in zip(x_values, count_values) if y is not None]
+    if not data:
+        continue
+
+    x_data, y_data = zip(*data)
+    data_len = len(y_data)
+
+    # Define the range of data to plot
+    x_range = ws.range((2, x_col), (1 + data_len, x_col))
+    y_range = ws.range((2, y_col), (1 + data_len, y_col))
+
+    # Add chart
+    chart = ws.charts.add()
+    chart.chart_type = 'bar_clustered'
+    chart.set_source_data(y_range)
+    chart.top = chart_top
+    chart.left = chart_left
+    chart.width = 400
+    chart.height = 300
+    chart.name = f"{col_name}_Chart"
+
+    chart.chart_title.text = f"{col_name} Distribution"
+    chart.api[1].Axes(1).HasTitle = True
+    chart.api[1].Axes(1).AxisTitle.Text = col_name  # x-axis
+    chart.api[1].Axes(2).HasTitle = True
+    chart.api[1].Axes(2).AxisTitle.Text = "Count"   # y-axis
+
+    # Apply data labels (values only)
+    for series in chart.api[1].SeriesCollection():
+        series.HasDataLabels = True
+        series.DataLabels().ShowValue = True
+
+    # Remove legend
+    chart.api[1].HasLegend = False
+
+    # Position next chart to the right
+    chart_left += chart_offset
+
+# Save and close (optional)
+# wb.save("Summary.xlsx")
+# wb.close()
